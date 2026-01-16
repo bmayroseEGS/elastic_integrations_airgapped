@@ -1,0 +1,11 @@
+# Binaries
+bin/elastic-data
+bin/elastic-data-linux
+bin/*.tar.gz
+
+# Config with secrets
+config/config.yaml
+
+# OS files
+.DS_Store
+Thumbs.db

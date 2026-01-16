@@ -1,0 +1,55 @@
+# elastic-data configuration
+# Copy this file to ~/.config/elastic-data/config.yaml
+
+# Elasticsearch connection
+elasticsearch:
+  host: "http://elasticsearch-master:9200"
+  username: "elastic"
+  password: "elastic"
+  # For API key auth (alternative to username/password):
+  # api_key: "your-api-key-here"
+
+# Kibana connection (optional - for dashboard installation)
+# kibana:
+#   host: "http://kibana:5601"
+
+# TLS settings (for self-signed certificates)
+# tls:
+#   ca_cert: "/path/to/ca.crt"
+#   skip_verify: false
+
+# Data replacement rules
+# These values will be substituted into generated events
+replacements:
+  # Domain names used in logs
+  domains:
+    - "example.com"
+    - "internal.local"
+    - "corp.company.com"
+
+  # IP addresses used in logs
+  ips:
+    - "192.168.1.100"
+    - "192.168.1.101"
+    - "10.0.0.50"
+    - "10.0.0.51"
+    - "172.16.0.10"
+
+  # Usernames used in logs
+  usernames:
+    - "john.doe"
+    - "jane.smith"
+    - "admin"
+    - "svc_account"
+
+  # Hostnames used in logs
+  hostnames:
+    - "web-server-01"
+    - "db-server-01"
+    - "app-server-01"
+    - "workstation-001"
+
+  # Email addresses used in logs
+  emails:
+    - "admin@example.com"
+    - "user@example.com"
