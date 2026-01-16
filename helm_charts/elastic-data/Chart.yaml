@@ -1,0 +1,16 @@
+apiVersion: v2
+name: elastic-data
+description: Sample data generator for Elastic integrations
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - elastic
+  - elasticsearch
+  - sample-data
+  - integrations
+home: https://github.com/tehbooom/elastic-data
+sources:
+  - https://github.com/bmayroseEGS/elastic_integrations_airgapped
+maintainers:
+  - name: bmayroseEGS

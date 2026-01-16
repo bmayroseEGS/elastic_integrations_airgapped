@@ -1,0 +1,52 @@
+# elastic-data Helm Chart Configuration
+# Sample data generator for 400+ Elastic integrations
+#
+# Note: elastic-data is an interactive TUI application.
+# After deploying, run:
+#   kubectl exec -it <pod-name> -n elastic -- elastic-data
+
+# Container image
+image:
+  registry: localhost:5000
+  repository: elastic-data
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Namespace
+namespace: elastic
+
+# Elasticsearch connection
+elasticsearch:
+  host: "http://elasticsearch-master:9200"
+  username: "elastic"
+  password: "elastic"
+  # apiKey: ""  # Alternative to username/password
+
+# Kibana connection (optional - for dashboard installation)
+kibana:
+  host: ""  # e.g., "http://kibana:5601"
+
+# ===========================================
+# Resource Configuration
+# ===========================================
+resources:
+  requests:
+    cpu: "10m"
+    memory: "64Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+# Pod configuration
+podSecurityContext: {}
+
+securityContext: {}
+
+# Node placement
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Pod metadata
+podAnnotations: {}
+podLabels: {}
