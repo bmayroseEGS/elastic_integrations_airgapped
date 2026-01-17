@@ -1,9 +1,10 @@
 # elastic-data Helm Chart Configuration
-# Sample data generator for 400+ Elastic integrations
+# Air-gapped data generator for Elastic integrations (Windows, NGINX, Cisco ASA)
+# All sample data embedded - no network access required
 #
 # Note: elastic-data is an interactive TUI application.
 # After deploying, run:
-#   kubectl exec -it <pod-name> -n elastic -- elastic-data
+#   kubectl exec -it <pod-name> -n elastic -- python /app/main.py
 
 # Container image
 image:
@@ -22,7 +23,7 @@ elasticsearch:
   password: "elastic"
   # apiKey: ""  # Alternative to username/password
 
-# Kibana connection (optional - for dashboard installation)
+# Kibana connection (optional - for future dashboard installation)
 kibana:
   host: ""  # e.g., "http://kibana:5601"
 
@@ -35,7 +36,7 @@ resources:
     memory: "64Mi"
   limits:
     cpu: "500m"
-    memory: "512Mi"
+    memory: "256Mi"
 
 # Pod configuration
 podSecurityContext: {}

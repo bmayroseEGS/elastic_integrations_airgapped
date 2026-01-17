@@ -1,10 +1,25 @@
-# Elastic Integrations - Air-Gapped Deployment
+# elastic-data - Air-Gapped Integration Data Generator
 
-Sample data generator for Elastic integrations in air-gapped environments. Uses [elastic-data](https://github.com/tehbooom/elastic-data) to generate realistic data for 400+ Elastic integrations.
+A TUI-based tool for generating sample data for Elastic integrations in air-gapped environments.
+All sample data is embedded - **no network access required**.
 
-## Overview
+Inspired by [tehbooom/elastic-data](https://github.com/tehbooom/elastic-data) but designed for fully offline use.
 
-This repository provides tools to generate sample data for Elastic integrations (nginx, AWS, Cisco, Windows, Kubernetes, etc.) and ingest it directly into Elasticsearch. Designed for air-gapped environments where you need demo data without actual data sources.
+## Features
+
+- **Interactive TUI**: Navigate with keyboard, select integrations, configure EPS
+- **Air-Gapped**: All sample data embedded - works without internet
+- **Multiple Integrations**: Windows, NGINX, Cisco ASA (more coming)
+- **Real-time Status**: Monitor running generators and event counts
+- **ECS Compliant**: Events follow Elastic Common Schema
+
+## Supported Integrations
+
+| Integration | Datasets | Data Streams |
+|------------|----------|--------------|
+| Windows | security, system, application | logs-windows.security-default, logs-windows.system-default, logs-windows.application-default |
+| NGINX | access, error | logs-nginx.access-default, logs-nginx.error-default |
+| Cisco ASA | log | logs-cisco_asa.log-default |
 
 ## Prerequisites
 
@@ -12,145 +27,133 @@ This repository is designed to work with the [helm-fleet-deployment-airgapped](h
 
 1. Deploy the Elastic Stack using helm-fleet-deployment-airgapped
 2. When running `collect-all.sh`, you will be prompted to clone additional repos - select this one
-3. The script will download required binaries and images for air-gapped transfer
+3. The script will download required images for air-gapped transfer
 
 ## Quick Start
 
-### Option 1: Kubernetes Deployment (Recommended)
-
-#### On Internet-Connected Machine
+### 1. Build the Image
 
 ```bash
-# Clone this repo
-git clone https://github.com/bmayroseEGS/elastic_integrations_airgapped.git
-cd elastic_integrations_airgapped
-
-# Build the container image
-cd docker
 ./build.sh
-
-# Save for air-gapped transfer
-docker save localhost:5000/elastic-data:latest -o elastic-data.tar
-```
-
-#### On Air-Gapped Machine
-
-```bash
-# Load and push the image
-docker load -i elastic-data.tar
 docker push localhost:5000/elastic-data:latest
-
-# Deploy with Helm
-cd helm_charts
-helm install elastic-data ./elastic-data -n elastic
-
-# Run the interactive TUI
-kubectl exec -it $(kubectl get pods -n elastic -l app=elastic-data -o jsonpath='{.items[0].metadata.name}') -n elastic -- elastic-data
 ```
 
-### Option 2: Run Binary Directly
-
-#### On Internet-Connected Machine
+### 2. Deploy to Kubernetes
 
 ```bash
-# Download the elastic-data binary
-./scripts/download-elastic-data.sh
+# Using defaults (ES at http://elasticsearch-master:9200)
+./deploy.sh
 
-# The binary will be saved to ./bin/elastic-data
+# Or with custom ES settings
+ES_HOST="https://my-es:9200" ES_USER="elastic" ES_PASS="secret" ./deploy.sh
 ```
 
-#### On Air-Gapped Machine
+### 3. Start the TUI
 
 ```bash
-# Run the data generator (requires port-forward to ES)
-kubectl port-forward svc/elasticsearch-master 9200:9200 -n elastic &
-./bin/elastic-data
+# Get pod name and exec into it
+POD=$(kubectl get pods -n elastic -l app.kubernetes.io/name=elastic-data -o jsonpath='{.items[0].metadata.name}')
+kubectl exec -it $POD -n elastic -- python /app/main.py
 ```
 
-## Using elastic-data
+## TUI Navigation
 
-elastic-data is an interactive TUI (Terminal User Interface) application.
+| Key | Action |
+|-----|--------|
+| ↑/↓ | Navigate list / Adjust EPS |
+| Enter | Select / Start generator |
+| Esc | Go back |
+| I | Go to Integrations view |
+| S | Go to Status view |
+| Q | Quit |
 
-### Navigation
+## TUI Views
 
-1. **Select Integration**: Use arrow keys to browse 400+ integrations
-2. **Select Dataset**: Choose the specific dataset within the integration
-3. **Configure**: Set events per second and other options
-4. **Run**: Press Enter on the "run" tab to start ingestion
+1. **Integrations**: List of available integrations
+2. **Datasets**: Datasets within selected integration
+3. **Config**: Configure EPS before starting
+4. **Status**: Monitor running generators
 
-### Example Workflow
+## Configuration
 
-```bash
-# Exec into the pod
-kubectl exec -it <pod-name> -n elastic -- elastic-data
-
-# In the TUI:
-# 1. Navigate to "nginx" integration
-# 2. Select "access" dataset
-# 3. Set events per second (e.g., 10)
-# 4. Press Enter to start generating data
-```
-
-## Supported Integrations
-
-elastic-data supports 400+ integrations including:
-
-- **Security**: Windows, Cisco ASA, Palo Alto, CrowdStrike, Microsoft Defender
-- **Cloud**: AWS CloudTrail/VPC Flow/S3, Azure, GCP
-- **Infrastructure**: Kubernetes, Docker, nginx, Apache, MySQL, PostgreSQL
-- **Observability**: APM, Logs, Metrics
-- And many more...
-
-## Helm Chart Configuration
-
-Key values in `helm_charts/elastic-data/values.yaml`:
+### Helm Values
 
 ```yaml
-# Container image (build and push first)
-image:
-  registry: localhost:5000
-  repository: elastic-data
-  tag: "latest"
-
-# Elasticsearch connection
+# values.yaml
 elasticsearch:
   host: "http://elasticsearch-master:9200"
   username: "elastic"
   password: "elastic"
-
-# Optional: Kibana for dashboard installation
-kibana:
-  host: "http://kibana:5601"
 ```
 
-## Directory Structure
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| ELASTICSEARCH_HOST | http://elasticsearch-master:9200 | ES endpoint |
+| ELASTICSEARCH_USERNAME | elastic | ES username |
+| ELASTICSEARCH_PASSWORD | elastic | ES password |
+
+## Project Structure
 
 ```
 elastic_integrations_airgapped/
-├── README.md
 ├── docker/
-│   ├── Dockerfile              # Container image for elastic-data
-│   ├── entrypoint.sh           # Container entrypoint
-│   └── build.sh                # Build script
+│   ├── Dockerfile
+│   ├── entrypoint.sh
+│   └── generator/          # Python generator code
+│       ├── main.py         # Main orchestrator
+│       ├── es_client.py    # ES bulk client
+│       ├── ui/
+│       │   └── tui.py      # Curses TUI
+│       └── integrations/   # Data generators
+│           ├── base.py     # Base generator class
+│           ├── windows.py  # Windows events
+│           ├── nginx.py    # NGINX logs
+│           └── cisco_asa.py # Cisco ASA logs
 ├── helm_charts/
-│   └── elastic-data/           # Helm chart for Kubernetes deployment
-│       ├── Chart.yaml
-│       ├── values.yaml
-│       └── templates/
-├── scripts/
-│   ├── download-elastic-data.sh   # Download binary for transfer
-│   └── deploy-elastic-data.sh     # Deploy/run on air-gapped system
-├── bin/                           # elastic-data binary (downloaded)
-└── config/
-    └── config.yaml.example        # Example configuration
+│   └── elastic-data/       # Helm chart
+├── generator/              # Source (copied to docker/)
+├── build.sh               # Build script
+├── deploy.sh              # Deploy script
+└── README.md
 ```
+
+## Adding New Integrations
+
+1. Create a new file in `generator/integrations/` (e.g., `myintegration.py`)
+2. Extend `BaseGenerator` class and implement `generate()` method
+3. Register in `generator/integrations/__init__.py` under `AVAILABLE_INTEGRATIONS`
+4. Copy to docker/generator/: `cp -r generator/* docker/generator/`
+5. Rebuild and redeploy
+
+Example:
+
+```python
+from .base import BaseGenerator
+
+class MyIntegrationGenerator(BaseGenerator):
+    DATA_STREAM = "logs-myintegration.log-default"
+
+    def generate(self):
+        event = self._base_event("myintegration.log", "myintegration")
+        event["message"] = "Sample event"
+        return event, self.DATA_STREAM
+```
+
+## Verifying Data in Kibana
+
+1. Go to **Discover**
+2. Create data view for `logs-*`
+3. Filter by `labels.synthetic: true` to see generated events
+4. Check for integration-specific fields like `winlog.*`, `nginx.*`, `cisco.*`
 
 ## Troubleshooting
 
 ### Pod not starting
 ```bash
-kubectl describe pod -n elastic -l app=elastic-data
-kubectl logs -n elastic -l app=elastic-data
+kubectl describe pod -n elastic -l app.kubernetes.io/name=elastic-data
+kubectl logs -n elastic -l app.kubernetes.io/name=elastic-data
 ```
 
 ### Cannot connect to Elasticsearch
@@ -163,8 +166,8 @@ kubectl exec -it <pod-name> -n elastic -- curl -u elastic:elastic http://elastic
 Ensure you have a proper TTY:
 ```bash
 kubectl exec -it <pod-name> -n elastic -- /bin/bash
-# Then run elastic-data manually
-elastic-data
+# Then run manually
+python /app/main.py
 ```
 
 ## Related Repositories
